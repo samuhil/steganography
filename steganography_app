@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+:root{--font-display:'Press Start 2P',monospace;--font-mono:'VT323',monospace;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;font-family:var(--font-mono);background:linear-gradient(135deg,#0a0a1a 0%,#0d1f0d 50%,#0a0a1a 100%);transition:background 0.6s ease;padding:0;image-rendering:pixelated}
+body.decode-mode{background:linear-gradient(135deg,#1a0a0a 0%,#1f0d0d 50%,#1a0a0a 100%)}
+.app{position:relative}
+.app::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:1;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.15) 0px,rgba(0,0,0,0.15) 1px,transparent 1px,transparent 3px);opacity:0.35}
+
+.app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem}
+
+.header{text-align:center;margin-bottom:2rem;position:relative;z-index:2}
+.logo{font-family:var(--font-display);font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(80,255,120,0.6);margin-bottom:14px;transition:color 0.6s}
+body.decode-mode .logo{color:rgba(255,80,80,0.6)}
+.title{font-family:var(--font-display);font-size:19px;font-weight:normal;color:rgba(255,255,255,0.92);letter-spacing:0px;line-height:1.6;text-shadow:2px 2px 0 rgba(80,255,120,0.25)}
+body.decode-mode .title{text-shadow:2px 2px 0 rgba(255,80,80,0.25)}
+.subtitle{font-family:var(--font-mono);font-size:16px;color:rgba(255,255,255,0.4);margin-top:10px;letter-spacing:0.5px}
+
+.toggle-wrap{display:flex;align-items:center;gap:16px;margin-bottom:2.5rem;position:relative;z-index:2}
+.toggle-label{font-family:var(--font-display);font-size:10px;font-weight:normal;transition:color 0.3s}
+.label-encode{color:rgba(80,255,120,0.9)}
+body.decode-mode .label-encode{color:rgba(255,255,255,0.3)}
+.label-decode{color:rgba(255,255,255,0.3)}
+body.decode-mode .label-decode{color:rgba(255,80,80,0.9)}
+
+.ios-toggle{width:56px;height:30px;background:rgba(80,255,120,0.25);border:2px solid rgba(80,255,120,0.5);border-radius:0px;cursor:pointer;position:relative;transition:background 0.4s,border-color 0.4s}
+body.decode-mode .ios-toggle{background:rgba(255,80,80,0.25);border-color:rgba(255,80,80,0.5)}
+.ios-toggle .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:0px;background:rgba(80,255,120,0.9);transition:transform 0.35s steps(4),background 0.4s;box-shadow:0 1px 0 rgba(0,0,0,0.4)}
+body.decode-mode .ios-toggle .knob{transform:translateX(24px);background:rgba(255,80,80,0.9)}
+
+.main-card{width:100%;max-width:640px;background:rgba(255,255,255,0.05);border:3px solid rgba(255,255,255,0.15);border-radius:0px;padding:2rem;transition:border-color 0.6s;position:relative;z-index:2;box-shadow:6px 6px 0 rgba(0,0,0,0.35)}
+body.decode-mode .main-card{border-color:rgba(255,80,80,0.25)}
+
+.type-buttons{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:2rem}
+.type-btn{padding:14px;border-radius:0px;border:2px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.6);cursor:pointer;font-size:10px;font-family:var(--font-display);display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.15s;line-height:1.6}
+.type-btn i{font-size:18px}
+.type-btn:hover{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.9)}
+.type-btn.active{border-color:rgba(80,255,120,0.6);background:rgba(80,255,120,0.1);color:rgba(80,255,120,0.9);box-shadow:3px 3px 0 rgba(80,255,120,0.2)}
+body.decode-mode .type-btn.active{border-color:rgba(255,80,80,0.6);background:rgba(255,80,80,0.1);color:rgba(255,80,80,0.9);box-shadow:3px 3px 0 rgba(255,80,80,0.2)}
+
+.panel{display:none}
+.panel.active{display:block}
+
+.field{margin-bottom:1.25rem}
+.field label{display:block;font-family:var(--font-display);font-size:9px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:10px;line-height:1.6}
+
+.drop-zone{border:2px dashed rgba(255,255,255,0.25);border-radius:0px;padding:2rem;text-align:center;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden;background:rgba(255,255,255,0.02)}
+.drop-zone:hover{border-color:rgba(80,255,120,0.5);background:rgba(80,255,120,0.04)}
+body.decode-mode .drop-zone:hover{border-color:rgba(255,80,80,0.5);background:rgba(255,80,80,0.04)}
+.drop-zone.has-img{border-style:solid;border-color:rgba(255,255,255,0.2)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-zone img{max-width:100%;max-height:160px;border-radius:0px;object-fit:contain;image-rendering:pixelated}
+.drop-zone .hint{font-family:var(--font-mono);font-size:15px;color:rgba(255,255,255,0.35);margin-top:8px}
+.drop-zone i.ti{font-size:28px;color:rgba(255,255,255,0.2)}
+
+.glass-input{width:100%;background:rgba(255,255,255,0.06);border:2px solid rgba(255,255,255,0.15);border-radius:0px;padding:10px 14px;color:rgba(255,255,255,0.9);font-size:17px;font-family:var(--font-mono);outline:none;transition:border-color 0.2s;resize:vertical}
+.glass-input::placeholder{color:rgba(255,255,255,0.3)}
+.glass-input:focus{border-color:rgba(80,255,120,0.5)}
+body.decode-mode .glass-input:focus{border-color:rgba(255,80,80,0.5)}
+
+.action-btn{width:100%;padding:14px 13px;border-radius:0px;border:2px solid rgba(80,255,120,0.5);background:rgba(80,255,120,0.12);color:rgba(80,255,120,0.95);font-size:11px;font-family:var(--font-display);font-weight:normal;cursor:pointer;letter-spacing:0.5px;transition:all 0.15s;margin-top:0.5rem;box-shadow:4px 4px 0 rgba(80,255,120,0.15)}
+.action-btn:hover{background:rgba(80,255,120,0.2);box-shadow:2px 2px 0 rgba(80,255,120,0.25)}
+.action-btn:active{transform:translate(2px,2px);box-shadow:0 0 0 rgba(80,255,120,0.15)}
+body.decode-mode .action-btn{border-color:rgba(255,80,80,0.5);background:rgba(255,80,80,0.12);color:rgba(255,80,80,0.95);box-shadow:4px 4px 0 rgba(255,80,80,0.15)}
+body.decode-mode .action-btn:hover{background:rgba(255,80,80,0.2);box-shadow:2px 2px 0 rgba(255,80,80,0.25)}
+
+.result-box{margin-top:1.5rem;padding:1.25rem;border-radius:0px;border:2px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.03);display:none}
+.result-box.show{display:block}
+.result-box .result-label{font-family:var(--font-display);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:rgba(80,255,120,0.7);margin-bottom:12px;line-height:1.6}
+body.decode-mode .result-box .result-label{color:rgba(255,80,80,0.7)}
+.result-text{font-family:var(--font-mono);font-size:17px;color:rgba(255,255,255,0.85);line-height:1.5;word-break:break-all}
+.result-img{max-width:100%;border-radius:0px;margin-top:8px;image-rendering:pixelated}
+
+.download-btn{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:8px 14px;border-radius:0px;border:2px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.7);font-size:14px;cursor:pointer;font-family:var(--font-mono);transition:all 0.15s}
+.download-btn:hover{background:rgba(255,255,255,0.12);color:rgba(255,255,255,0.95)}
+.download-btn:active{transform:translate(1px,1px)}
+
+.error-msg{font-family:var(--font-mono);font-size:15px;color:rgba(255,100,100,0.85);margin-top:8px;display:none}
+.error-msg.show{display:block}
+
+canvas{display:none}
+
+.divider{border:none;border-top:1px solid rgba(255,255,255,0.06);margin:1.5rem 0}
+
+/* ===== merge / emerge animation ===== */
+.flying-ghost{position:fixed;z-index:9999;pointer-events:none;border-radius:0px;image-rendering:pixelated;box-shadow:0 0 30px rgba(80,255,120,0.65),0 0 60px rgba(80,255,120,0.25);object-fit:cover;transition:left 0.85s cubic-bezier(.65,0,.35,1),top 0.85s cubic-bezier(.65,0,.35,1),width 0.85s cubic-bezier(.65,0,.35,1),height 0.85s cubic-bezier(.65,0,.35,1),opacity 0.85s ease,transform 0.85s cubic-bezier(.65,0,.35,1),filter 0.85s ease}
+body.decode-mode .flying-ghost{box-shadow:0 0 30px rgba(255,80,80,0.65),0 0 60px rgba(255,80,80,0.25)}
+
+.pulse-ring{position:fixed;z-index:9998;pointer-events:none;border-radius:50%;border:2px solid rgba(80,255,120,0.65);animation:pulseRing 0.85s ease-out forwards}
+body.decode-mode .pulse-ring{border-color:rgba(255,80,80,0.65)}
+@keyframes pulseRing{
+  0%{transform:scale(0.15);opacity:0.95}
+  100%{transform:scale(2.4);opacity:0}
+}
+
+.absorb-flash{animation:absorbFlash 0.85s ease-out}
+@keyframes absorbFlash{
+  0%{filter:brightness(1) saturate(1)}
+  35%{filter:brightness(1.9) saturate(1.6)}
+  100%{filter:brightness(1) saturate(1)}
+}
+
+.reveal-pop{animation:revealPop 0.6s cubic-bezier(.34,1.56,.64,1)}
+@keyframes revealPop{
+  0%{transform:scale(0.7);opacity:0;filter:blur(8px)}
+  60%{transform:scale(1.04);opacity:1;filter:blur(0)}
+  100%{transform:scale(1)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo">Steganography</div>
+    <div class="title">Hide in Plain Sight</div>
+    <div class="subtitle">Encode secrets into images. No data leaves your browser.</div>
+  </div>
+
+  <div class="toggle-wrap">
+    <span class="toggle-label label-encode">Encode</span>
+    <div class="ios-toggle" id="modeToggle" onclick="toggleMode()" role="switch" aria-label="Toggle encode/decode mode">
+      <div class="knob"></div>
+    </div>
+    <span class="toggle-label label-decode">Decode</span>
+  </div>
+
+  <div class="main-card">
+    <div class="type-buttons">
+      <button class="type-btn active" id="btnText" onclick="switchType('text')">
+        <i class="ti ti-message-2" aria-hidden="true"></i> Text in Image
+      </button>
+      <button class="type-btn" id="btnImage" onclick="switchType('image')">
+        <i class="ti ti-photo-scan" aria-hidden="true"></i> Image in Image
+      </button>
+    </div>
+
+    <div class="panel active" id="panel-encode-text">
+      <div class="field">
+        <label>Carrier image</label>
+        <div class="drop-zone" id="dz-et-carrier">
+          <input type="file" accept="image/*" onchange="loadCarrierEncode(this)">
+          <i class="ti ti-upload" aria-hidden="true"></i>
+          <div class="hint">Click or drop an image here</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Secret message</label>
+        <textarea class="glass-input" id="et-message" rows="3" placeholder="Type your hidden message..."></textarea>
+      </div>
+      <div class="field">
+        <label>Password / key <span style="color:rgba(255,255,255,0.2);font-weight:400">(optional)</span></label>
+        <input type="password" class="glass-input" id="et-key" placeholder="Leave blank for no lock">
+      </div>
+      <div class="error-msg" id="et-error"></div>
+      <button class="action-btn" onclick="encodeText()"><i class="ti ti-lock" aria-hidden="true"></i> Encode Message</button>
+      <div class="result-box" id="et-result">
+        <div class="result-label">Encoded image — right-click → save as PNG</div>
+        <canvas id="et-canvas"></canvas>
+        <img class="result-img" id="et-output-img">
+        <br><button class="download-btn" onclick="downloadCanvas('et-canvas','encoded-text.png')"><i class="ti ti-download" aria-hidden="true"></i> Download</button>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-decode-text">
+      <div class="field">
+        <label>Encoded image</label>
+        <div class="drop-zone" id="dz-dt">
+          <input type="file" accept="image/*" onchange="loadDecodeImg(this,'dt')">
+          <i class="ti ti-upload" aria-hidden="true"></i>
+          <div class="hint">Click or drop your encoded image</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Password / key <span style="color:rgba(255,255,255,0.2);font-weight:400">(if set)</span></label>
+        <input type="password" class="glass-input" id="dt-key" placeholder="Enter key if one was used">
+      </div>
+      <div class="error-msg" id="dt-error"></div>
+      <button class="action-btn" onclick="decodeText()"><i class="ti ti-lock-open" aria-hidden="true"></i> Decode Message</button>
+      <div class="result-box" id="dt-result">
+        <div class="result-label">Hidden message</div>
+        <div class="result-text" id="dt-output"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-encode-image">
+      <div class="field">
+        <label>Carrier image (outer)</label>
+        <div class="drop-zone" id="dz-ei-carrier">
+          <input type="file" accept="image/*" onchange="loadEICarrier(this)">
+          <i class="ti ti-upload" aria-hidden="true"></i>
+          <div class="hint">The image that will hide another</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Secret image (to hide)</label>
+        <div class="drop-zone" id="dz-ei-secret">
+          <input type="file" accept="image/*" onchange="loadEISecret(this)">
+          <i class="ti ti-upload" aria-hidden="true"></i>
+          <div class="hint">Must be smaller or equal size</div>
+        </div>
+      </div>
+      <div class="error-msg" id="ei-error"></div>
+      <button class="action-btn" onclick="encodeImage()"><i class="ti ti-eye-off" aria-hidden="true"></i> Hide Image Inside</button>
+      <div class="result-box" id="ei-result">
+        <div class="result-label">Merged image (contains hidden image)</div>
+        <canvas id="ei-canvas"></canvas>
+        <img class="result-img" id="ei-output-img">
+        <br><button class="download-btn" onclick="downloadCanvas('ei-canvas','merged.png')"><i class="ti ti-download" aria-hidden="true"></i> Download PNG</button>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-decode-image">
+      <div class="field">
+        <label>Merged image</label>
+        <div class="drop-zone" id="dz-di">
+          <input type="file" accept="image/*" onchange="loadDecodeImg(this,'di')">
+          <i class="ti ti-upload" aria-hidden="true"></i>
+          <div class="hint">The image containing a hidden image</div>
+        </div>
+      </div>
+      <div class="error-msg" id="di-error"></div>
+      <button class="action-btn" onclick="decodeImage()"><i class="ti ti-eye" aria-hidden="true"></i> Extract Hidden Image</button>
+      <div class="result-box" id="di-result">
+        <div class="result-label">Extracted image</div>
+        <canvas id="di-canvas"></canvas>
+        <img class="result-img" id="di-output-img">
+        <br><button class="download-btn" onclick="downloadCanvas('di-canvas','extracted.png')"><i class="ti ti-download" aria-hidden="true"></i> Download</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let isDecodeMode = false;
+let currentType = 'text';
+let eiCarrierImg = null, eiSecretImg = null;
+let loadedImgs = {};
+
+function toggleMode(){
+  isDecodeMode = !isDecodeMode;
+  document.body.classList.toggle('decode-mode', isDecodeMode);
+  showPanel();
+}
+
+function switchType(t){
+  currentType = t;
+  document.getElementById('btnText').classList.toggle('active', t==='text');
+  document.getElementById('btnImage').classList.toggle('active', t==='image');
+  showPanel();
+}
+
+function showPanel(){
+  const panels = document.querySelectorAll('.panel');
+  panels.forEach(p=>p.classList.remove('active'));
+  const mode = isDecodeMode ? 'decode' : 'encode';
+  const id = `panel-${mode}-${currentType}`;
+  const el = document.getElementById(id);
+  if(el) el.classList.add('active');
+}
+
+function loadDropZonePreview(file, dzId){
+  if(!file) return;
+  const dz = document.getElementById(dzId);
+  const reader = new FileReader();
+  reader.onload = e => {
+    dz.innerHTML = `<input type="file" accept="image/*" onchange="reloadDropzone(this,'${dzId}')"><img src="${e.target.result}" style="max-width:100%;max-height:140px;border-radius:8px;object-fit:contain">`;
+    dz.classList.add('has-img');
+  };
+  reader.readAsDataURL(file);
+}
+
+function reloadDropzone(input, dzId){
+  const file = input.files[0];
+  if(!file) return;
+  if(dzId==='dz-et-carrier') loadCarrierEncode(input);
+  else if(dzId==='dz-dt') loadDecodeImg(input,'dt');
+  else if(dzId==='dz-ei-carrier') loadEICarrier(input);
+  else if(dzId==='dz-ei-secret') loadEISecret(input);
+  else if(dzId==='dz-di') loadDecodeImg(input,'di');
+}
+
+function loadImageFromFile(file, cb){
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = ()=>{ cb(img); };
+  img.src = url;
+}
+
+function loadCarrierEncode(input){
+  const file = input.files[0];
+  if(!file) return;
+  loadDropZonePreview(file,'dz-et-carrier');
+  loadImageFromFile(file, img=>{ loadedImgs['et-carrier']=img; });
+}
+
+function loadDecodeImg(input, key){
+  const file = input.files[0];
+  if(!file) return;
+  loadDropZonePreview(file,'dz-'+key);
+  loadImageFromFile(file, img=>{ loadedImgs[key]=img; });
+}
+
+function loadEICarrier(input){
+  const file = input.files[0];
+  if(!file) return;
+  loadDropZonePreview(file,'dz-ei-carrier');
+  loadImageFromFile(file, img=>{ eiCarrierImg=img; });
+}
+
+function loadEISecret(input){
+  const file = input.files[0];
+  if(!file) return;
+  loadDropZonePreview(file,'dz-ei-secret');
+  loadImageFromFile(file, img=>{ eiSecretImg=img; });
+}
+
+function showError(id, msg){
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 4000);
+}
+
+function hideError(id){ document.getElementById(id).classList.remove('show'); }
+
+function simpleXOR(str, key){
+  if(!key) return str;
+  let out = '';
+  for(let i=0;i<str.length;i++) out += String.fromCharCode(str.charCodeAt(i)^key.charCodeAt(i%key.length));
+  return out;
+}
+
+function strToBinary(str){
+  let bin = '';
+  for(let i=0;i<str.length;i++){
+    let b = str.charCodeAt(i).toString(2);
+    while(b.length<8) b='0'+b;
+    bin+=b;
+  }
+  return bin;
+}
+
+function binaryToStr(bin){
+  let out = '';
+  for(let i=0;i<bin.length;i+=8){
+    const c = parseInt(bin.slice(i,i+8),2);
+    if(c===0) break;
+    out+=String.fromCharCode(c);
+  }
+  return out;
+}
+
+function encodeText(){
+  hideError('et-error');
+  const carrier = loadedImgs['et-carrier'];
+  if(!carrier){ showError('et-error','Please upload a carrier image first.'); return; }
+  let msg = document.getElementById('et-message').value;
+  const key = document.getElementById('et-key').value;
+  if(!msg){ showError('et-error','Please enter a message to hide.'); return; }
+
+  const MARKER = '\x00\x00\x00';
+  if(key){
+    const hash = simpleHash(key);
+    msg = String.fromCharCode(hash&0xFF, (hash>>8)&0xFF) + simpleXOR(msg,key) + MARKER;
+  } else {
+    msg = msg + MARKER;
+  }
+
+  const canvas = document.getElementById('et-canvas');
+  canvas.width = carrier.width;
+  canvas.height = carrier.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(carrier,0,0);
+
+  const binMsg = strToBinary(msg);
+  if(binMsg.length > carrier.width*carrier.height*3){
+    showError('et-error','Message too long for this image. Use a larger image.');
+    return;
+  }
+
+  const imgData = ctx.getImageData(0,0,canvas.width,canvas.height);
+  const px = imgData.data;
+  for(let i=0,n=px.length,c=0;i<n;i+=4){
+    for(let o=0;o<3;o++){
+      if(px[i+o]%2!==0) px[i+o]--;
+    }
+  }
+  let counter=0;
+  for(let i=0,n=px.length;i<n;i+=4){
+    for(let o=0;o<3;o++){
+      if(counter<binMsg.length){ px[i+o]+=parseInt(binMsg[counter]); counter++; }
+    }
+  }
+  ctx.putImageData(imgData,0,0);
+
+  const dataURL = canvas.toDataURL('image/png');
+  document.getElementById('et-output-img').src = dataURL;
+  document.getElementById('et-result').classList.add('show');
+}
+
+function decodeText(){
+  hideError('dt-error');
+  const img = loadedImgs['dt'];
+  if(!img){ showError('dt-error','Please upload an encoded image.'); return; }
+  const key = document.getElementById('dt-key').value;
+
+  const tmp = document.createElement('canvas');
+  tmp.width=img.width; tmp.height=img.height;
+  const ctx=tmp.getContext('2d');
+  ctx.drawImage(img,0,0);
+  const px=ctx.getImageData(0,0,tmp.width,tmp.height).data;
+
+  let bin='';
+  for(let i=0,n=px.length;i<n;i+=4)
+    for(let o=0;o<3;o++) bin += (px[i+o]%2!==0)?'1':'0';
+
+  let raw = binaryToStr(bin);
+
+  if(key){
+    if(raw.length<2){ document.getElementById('dt-result').classList.remove('show'); return; }
+    const storedHash = raw.charCodeAt(0)|(raw.charCodeAt(1)<<8);
+    const expectedHash = simpleHash(key);
+    if(storedHash!==expectedHash){ document.getElementById('dt-result').classList.remove('show'); return; }
+    raw = simpleXOR(raw.slice(2), key);
+  }
+
+  const out = raw.replace(/\x00[\s\S]*/,'');
+  document.getElementById('dt-output').textContent = out || '(no readable message found)';
+  document.getElementById('dt-result').classList.add('show');
+}
+
+function simpleHash(str){
+  let h=5381;
+  for(let i=0;i<str.length;i++) h=((h<<5)+h)+str.charCodeAt(i);
+  return h&0xFFFF;
+}
+
+/* ===== flying-ghost animation helpers ===== */
+
+function animateAbsorb(sourceImgEl, targetEl, onDone){
+  if(!sourceImgEl || !targetEl){ onDone(); return; }
+  const sRect = sourceImgEl.getBoundingClientRect();
+  const tRect = targetEl.getBoundingClientRect();
+  if(sRect.width===0 || tRect.width===0){ onDone(); return; }
+
+  const ghost = document.createElement('img');
+  ghost.src = sourceImgEl.src;
+  ghost.className = 'flying-ghost';
+  ghost.style.left = sRect.left+'px';
+  ghost.style.top = sRect.top+'px';
+  ghost.style.width = sRect.width+'px';
+  ghost.style.height = sRect.height+'px';
+  ghost.style.opacity = '1';
+  document.body.appendChild(ghost);
+
+  const cx = tRect.left + tRect.width/2;
+  const cy = tRect.top + tRect.height/2;
+
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      ghost.style.left = (cx-2)+'px';
+      ghost.style.top = (cy-2)+'px';
+      ghost.style.width = '4px';
+      ghost.style.height = '4px';
+      ghost.style.opacity = '0';
+      ghost.style.transform = 'rotate(620deg)';
+      ghost.style.filter = 'blur(5px) brightness(2)';
+    });
+  });
+
+  setTimeout(()=>{
+    const ring = document.createElement('div');
+    ring.className = 'pulse-ring';
+    ring.style.left = (cx-40)+'px';
+    ring.style.top = (cy-40)+'px';
+    ring.style.width = '80px';
+    ring.style.height = '80px';
+    document.body.appendChild(ring);
+    targetEl.classList.add('absorb-flash');
+    setTimeout(()=>{ ring.remove(); targetEl.classList.remove('absorb-flash'); }, 850);
+
+    ghost.remove();
+    onDone();
+  }, 820);
+}
+
+function animateEmerge(sourceEl, targetImgEl, finalSrc, onDone){
+  if(!sourceEl || !targetImgEl){ targetImgEl.src = finalSrc; onDone(); return; }
+  const sRect = sourceEl.getBoundingClientRect();
+
+  targetImgEl.style.opacity = '0';
+  targetImgEl.src = finalSrc;
+
+  requestAnimationFrame(()=>{
+    const tRect = targetImgEl.getBoundingClientRect();
+    if(sRect.width===0 || tRect.width===0){ targetImgEl.style.opacity='1'; onDone(); return; }
+
+    const cx = sRect.left + sRect.width/2;
+    const cy = sRect.top + sRect.height/2;
+
+    const ghost = document.createElement('img');
+    ghost.src = finalSrc;
+    ghost.className = 'flying-ghost';
+    ghost.style.left = (cx-2)+'px';
+    ghost.style.top = (cy-2)+'px';
+    ghost.style.width = '4px';
+    ghost.style.height = '4px';
+    ghost.style.opacity = '0';
+    ghost.style.transform = 'rotate(-620deg)';
+    ghost.style.filter = 'blur(5px) brightness(2)';
+    document.body.appendChild(ghost);
+
+    const ring = document.createElement('div');
+    ring.className = 'pulse-ring';
+    ring.style.left = (cx-40)+'px';
+    ring.style.top = (cy-40)+'px';
+    ring.style.width = '80px';
+    ring.style.height = '80px';
+    document.body.appendChild(ring);
+
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        ghost.style.left = tRect.left+'px';
+        ghost.style.top = tRect.top+'px';
+        ghost.style.width = tRect.width+'px';
+        ghost.style.height = tRect.height+'px';
+        ghost.style.opacity = '1';
+        ghost.style.transform = 'rotate(0deg)';
+        ghost.style.filter = 'blur(0px) brightness(1)';
+      });
+    });
+
+    setTimeout(()=>{
+      ghost.remove();
+      ring.remove();
+      targetImgEl.style.opacity = '1';
+      targetImgEl.classList.add('reveal-pop');
+      setTimeout(()=>targetImgEl.classList.remove('reveal-pop'), 650);
+      onDone();
+    }, 820);
+  });
+}
+
+function encodeImage(){
+  hideError('ei-error');
+  if(!eiCarrierImg){ showError('ei-error','Please upload a carrier image.'); return; }
+  if(!eiSecretImg){ showError('ei-error','Please upload the secret image to hide.'); return; }
+  if(eiSecretImg.width>eiCarrierImg.width||eiSecretImg.height>eiCarrierImg.height){
+    showError('ei-error','Secret image must be same size or smaller than carrier.'); return;
+  }
+
+  const secretThumb = document.querySelector('#dz-ei-secret img');
+  const carrierZone = document.getElementById('dz-ei-carrier');
+
+  animateAbsorb(secretThumb, carrierZone, ()=>{
+    const canvas = document.getElementById('ei-canvas');
+    canvas.width=eiCarrierImg.width; canvas.height=eiCarrierImg.height;
+    const ctx=canvas.getContext('2d');
+
+    const c1=document.createElement('canvas');
+    c1.width=eiCarrierImg.width; c1.height=eiCarrierImg.height;
+    c1.getContext('2d').drawImage(eiCarrierImg,0,0);
+    const map1=c1.getContext('2d').getImageData(0,0,c1.width,c1.height);
+
+    const c2=document.createElement('canvas');
+    c2.width=eiSecretImg.width; c2.height=eiSecretImg.height;
+    c2.getContext('2d').drawImage(eiSecretImg,0,0);
+    const map2=c2.getContext('2d').getImageData(0,0,c2.width,c2.height);
+
+    const out=ctx.createImageData(eiCarrierImg.width,eiCarrierImg.height);
+    for(let y=0;y<eiCarrierImg.height;y++){
+      for(let x=0;x<eiCarrierImg.width;x++){
+        const i1=((y*eiCarrierImg.width)+x)*4;
+        const valid=x<eiSecretImg.width&&y<eiSecretImg.height;
+        const i2=valid?(((y*eiSecretImg.width)+x)*4):0;
+        for(let c=0;c<3;c++){
+          const b1=map1.data[i1+c].toString(2).padStart(8,'0');
+          const b2=valid?map2.data[i2+c].toString(2).padStart(8,'0'):'00000000';
+          const merged=b1.slice(0,4)+b2.slice(0,4);
+          out.data[i1+c]=parseInt(merged,2);
+        }
+        out.data[i1+3]=255;
+      }
+    }
+    ctx.putImageData(out,0,0);
+    document.getElementById('ei-output-img').src=canvas.toDataURL('image/png');
+    const resultBox = document.getElementById('ei-result');
+    resultBox.classList.add('show');
+    resultBox.classList.add('reveal-pop');
+    setTimeout(()=>resultBox.classList.remove('reveal-pop'), 650);
+  });
+}
+
+function decodeImage(){
+  hideError('di-error');
+  const img=loadedImgs['di'];
+  if(!img){ showError('di-error','Please upload a merged image.'); return; }
+
+  const tmp=document.createElement('canvas');
+  tmp.width=img.width; tmp.height=img.height;
+  const ctx=tmp.getContext('2d');
+  ctx.drawImage(img,0,0);
+  const src=ctx.getImageData(0,0,tmp.width,tmp.height);
+
+  const canvas=document.getElementById('di-canvas');
+  canvas.width=img.width; canvas.height=img.height;
+  const outCtx=canvas.getContext('2d');
+  const out=outCtx.createImageData(img.width,img.height);
+
+  for(let i=0,n=src.data.length;i<n;i+=4){
+    for(let c=0;c<3;c++){
+      const bits=src.data[i+c].toString(2).padStart(8,'0');
+      out.data[i+c]=parseInt(bits.slice(4)+'0000',2);
+    }
+    out.data[i+3]=255;
+  }
+  outCtx.putImageData(out,0,0);
+
+  const dataURL = canvas.toDataURL('image/png');
+  const sourceThumb = document.querySelector('#dz-di img');
+  const targetImg = document.getElementById('di-output-img');
+  const resultBox = document.getElementById('di-result');
+  resultBox.classList.add('show');
+  animateEmerge(sourceThumb, targetImg, dataURL, ()=>{});
+}
+
+function downloadCanvas(canvasId, filename){
+  const canvas=document.getElementById(canvasId);
+  const a=document.createElement('a');
+  a.download=filename;
+  a.href=canvas.toDataURL('image/png');
+  a.click();
+}
+</script>
+</body>
+</html>
